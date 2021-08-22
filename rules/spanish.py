@@ -1,171 +1,153 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# coding=utf-8
+
 # Copyright (c) 2006 Bermi Ferrer Martinez
-# Copyright (c) 2006 Carles Sadurn√≠ Anguita
+# Copyright (c) 2006 Carles SadurnÌ Anguita
 #
 # bermi a-t bermilabs - com
 #
-# See the end of this file for the free software, open source license
-# (BSD-style).
+# See the end of this file for the free software, open source license (BSD-style).
 
 import re
 from base import Base
-import utils
-
 
 class Spanish (Base):
     '''
     Inflector for pluralize and singularize Spanish nouns.
     '''
-
-    irregular_words = {
-        u'base': u'bases',
-        u'car√°cter': u'caracteres',
-        u'champ√∫': u'champ√∫s',
-        u'curriculum': u'curr√≠culos',
-        u'esp√©cimen': u'espec√≠menes',
-        u'jersey': u'jers√©is',
-        u'memor√°ndum': u'memorandos',
-        u'men√∫': u'men√∫s',
-        u'no': u'noes',
-        u'pa√≠s': u'pa√≠ses',
-        u'refer√©ndum': u'referendos',
-        u'r√©gimen': u'reg√≠menes',
-        u's√°ndwich': u's√°ndwiches',
-        u'si': u'sis', # Nota musical ALERTA: ¬°provoca efectos secundarios!
-        u'taxi': u'taxis', 
-        u'ultim√°tum': u'ultimatos',
+    
+    def pluralize(self, word) :
+        '''Pluralizes Spanish nouns.'''
+        rules = [
+            ['(?i)([aeiou])x$', '\\1x'], # This could fail if the word is oxytone.
+            ['(?i)([·ÈÌÛ˙])([ns])$', '|1\\2es'],
+            ['(?i)(^[bcdfghjklmnÒpqrstvwxyz]*)an$', '\\1anes'], # clan->clanes
+            ['(?i)([·ÈÌÛ˙])s$', '|1ses'],
+            ['(?i)(^[bcdfghjklmnÒpqrstvwxyz]*)([aeiou])([ns])$', '\\1\\2\\3es'], # tren->trenes
+            ['(?i)([aeiou·ÈÛ])$', '\\1s'], # casa->casas, padre->padres, pap·->pap·s
+            ['(?i)([aeiou])s$', '\\1s'], # atlas->atlas, virus->virus, etc.
+            ['(?i)([ÈÌ])(s)$', '|1\\2es'], # inglÈs->ingleses
+            ['(?i)z$', 'ces'],  # luz->luces
+            ['(?i)([Ì˙])$', '\\1es'], # ceutÌ->ceutÌes, tab˙->tab˙es
+            ['(?i)(ng|[wckgtp])$', '\\1s'], # Anglicismos como puenting, frac, crack, show (En que casos podrÌa fallar esto?)
+            ['(?i)$', 'es']	# ELSE +es (v.g. ·rbol->·rboles)
+        ]
+        
+        uncountable_words = ['tijeras','gafas', 'vacaciones','vÌveres','dÈficit']
+        ''' In fact these words have no singular form: you cannot say neither
+        "una gafa" nor "un vÌvere". So we should change the variable name to
+        onlyplural or something alike.'''
+        
+        irregular_words = {
+            'paÌs' : 'paÌses',
+            'champ˙' : 'champ˙s',
+            'jersey' : 'jersÈis',
+            'car·cter' : 'caracteres',
+            'espÈcimen' : 'especÌmenes',
+            'men˙' : 'men˙s',
+            'rÈgimen' : 'regÌmenes',
+            'curriculum'  :  'currÌculos',
+            'ultim·tum'  :  'ultimatos',
+            'memor·ndum'  :  'memorandos',
+            'referÈndum'  :  'referendos'
         }
-
-    # These words either have the same form in singular and plural, or have no singular form at all
-    non_changing_words = [
-        u'lunes', u'martes', u'mi√©rcoles', u'jueves', u'viernes',
-        u'paraguas', u'tijeras', u'gafas', u'vacaciones', u'v√≠veres',
-        u'cumplea√±os', u'virus', u'atlas', u'sms', u'hummus',
-    ]
-
-
-    def pluralize(self, word):
-        '''
-        Pluralizes Spanish nouns.
-        Input string can be Unicode (e.g. u"palabra"), or a str encoded in UTF-8 or Latin-1.
-        Output string will be encoded the same way as the input.
-        '''
-
-        word, origType = utils.unicodify(word)  # all internal calculations are done in Unicode
-
-        rules = [
-            [u'(?i)([aeiou])x$', u'\\1x'],
-            # This could fail if the word is oxytone.
-            [u'(?i)([√°√©√≠√≥√∫])([ns])$', u'|1\\2es'],
-            [u'(?i)(^[bcdfghjklmn√±pqrstvwxyz]*)an$', u'\\1anes'],  # clan->clanes
-            [u'(?i)([√°√©√≠√≥√∫])s$', u'|1ses'],
-            [u'(?i)(^[bcdfghjklmn√±pqrstvwxyz]*)([aeiou])([ns])$', u'\\1\\2\\3es'],  # tren->trenes
-            [u'(?i)([aeiou√°√©√≥])$', u'\\1s'],  # casa->casas, padre->padres, pap√°->pap√°s
-            [u'(?i)([aeiou])s$', u'\\1s'],    # atlas->atlas, virus->virus, etc.
-            [u'(?i)([√©√≠])(s)$', u'|1\\2es'],  # ingl√©s->ingleses
-            [u'(?i)z$', u'ces'],              # luz->luces
-            [u'(?i)([√≠√∫])$', u'\\1es'],       # ceut√≠->ceut√≠es, tab√∫->tab√∫es
-            [u'(?i)(ng|[wckgtp])$', u'\\1s'], # Anglicismos como puenting, frac, crack, show (En que casos podr√≠a fallar esto?)
-            [u'(?i)$', u'es']  # ELSE +es (v.g. √°rbol->√°rboles)
-        ]
-
-        lower_cased_word = word.lower()
-
-        for uncountable_word in self.non_changing_words:
-            if lower_cased_word[-1 * len(uncountable_word):] == uncountable_word:
-                return utils.deunicodify(word, origType)
-
-        for irregular_singular, irregular_plural in self.irregular_words.iteritems():
-            match = re.search(u'(?i)(^' + irregular_singular + u')$', word, re.IGNORECASE)
+        
+        lower_cased_word = word.lower();
+        
+        for uncountable_word in uncountable_words:
+            if lower_cased_word[-1*len(uncountable_word):] == uncountable_word :
+                return word
+        
+        for irregular in irregular_words.keys():
+            match = re.search('(?i)('+irregular+')$',word, re.IGNORECASE)
             if match:
-                result = re.sub(u'(?i)' + irregular_singular + u'$', match.expand(u'\\1')[0] + irregular_plural[1:], word)
-                return utils.deunicodify(result, origType)
-
-        for rule in rules:
-            match = re.search(rule[0], word, re.IGNORECASE)
-            if match:
+                return re.sub('(?i)'+irregular+'$', match.expand('\\1')[0]+irregular_words[irregular][1:], word)
+        
+        
+        for rule in range(len(rules)):
+            match = re.search(rules[rule][0], word, re.IGNORECASE)
+            
+            if match :
                 groups = match.groups()
-                replacement = rule[1]
-                if re.match(u'\|', replacement):
-                    for k in range(1, len(groups)):
-                        replacement = replacement.replace(u'|' + unicode(
-                            k), self.string_replace(groups[k - 1], u'√Å√â√ç√ì√ö√°√©√≠√≥√∫', u'AEIOUaeiou'))
-
-                result = re.sub(rule[0], replacement, word)
-                # Esto acent√∫a los sustantivos que al pluralizarse se
-                # convierten en esdr√∫julos como esm√≥quines, j√≥venes...
-                match = re.search(u'(?i)([aeiou]).{1,3}([aeiou])nes$', result)
-
-                if match and len(match.groups()) > 1 and not re.search(u'(?i)[√°√©√≠√≥√∫]', word):
-                    result = result.replace(match.group(0), self.string_replace(
-                        match.group(1), u'AEIOUaeiou', u'√Å√â√ç√ì√ö√°√©√≠√≥√∫') + match.group(0)[1:])
-
-                return utils.deunicodify(result, origType)
-
-        return utils.deunicodify(word, origType)
+                replacement = rules[rule][1]
+                if re.match('\|', replacement) :
+                    for k in range(1, len(groups)) :
+                        replacement = replacement.replace('|'+str(k), self.string_replace(groups[k-1], '¡…Õ”⁄·ÈÌÛ˙', 'AEIOUaeiou'))
+                
+                result = re.sub(rules[rule][0], replacement, word)
+                # Esto acentua los sustantivos que al pluralizarse se convierten en esdr˙julos como esmÛquines, jÛvenes...
+                match = re.search('(?i)([aeiou]).{1,3}([aeiou])nes$',result)
+                
+                if match and len(match.groups()) > 1 and not re.search('(?i)[·ÈÌÛ˙]', word) :
+                    result = result.replace(match.group(0), self.string_replace(match.group(1), 'AEIOUaeiou', '¡…Õ”⁄·ÈÌÛ˙') + match.group(0)[1:])
+                    
+                return result
+        
+        return word
 
 
-    def singularize(self, word):
-        '''
-        Singularizes Spanish nouns.
-        Input string can be Unicode (e.g. u"palabras"), or a str encoded in UTF-8 or Latin-1.
-        Output string will be encoded the same way as the input.
-        '''
-
-        word, origType = utils.unicodify(word)  # all internal calculations are done in Unicode
-
+    def singularize (self, word) :
+        '''Singularizes Spanish nouns.'''
+        
         rules = [
-            [ur'(?i)^([bcdfghjklmn√±pqrstvwxyz]*)([aeiou])([ns])es$', u'\\1\\2\\3'],
-            [ur'(?i)([aeiou])([ns])es$', u'~1\\2'],
-            [ur'(?i)shes$', u'sh'],             # flashes->flash
-            [ur'(?i)oides$', u'oide'],          # androides->androide
-            [ur'(?i)(sis|tis|xis)$', u'\\1'],   # crisis, apendicitis, praxis
-            [ur'(?i)(√©)s$', u'\\1'],            # beb√©s->beb√©
-            [ur'(?i)(ces)$', u'z'],             # luces->luz
-            [ur'(?i)([^e])s$', u'\\1'],         # casas->casa
-            [ur'(?i)([bcdfghjklmn√±prstvwxyz]{2,}e)s$', u'\\1'],  # cofres->cofre
-            [ur'(?i)([gh√±ptv]e)s$', u'\\1'],    # llaves->llave, radiocasetes->radiocasete
-            [ur'(?i)jes$', u'je'],              # ejes->eje
-            [ur'(?i)ques$', u'que'],            # tanques->tanque
-            [ur'(?i)es$', u'']                  # ELSE remove _es_  monitores->monitor
-        ]
-
-        lower_cased_word = word.lower()
-
-        for uncountable_word in self.non_changing_words:
-            if lower_cased_word[-1 * len(uncountable_word):] == uncountable_word:
-                return utils.deunicodify(word, origType)
-
-        for irregular_singular, irregular_plural in self.irregular_words.iteritems():
-            match = re.search(u'(^' + irregular_plural + u')$', word, re.IGNORECASE)
+            ['(?i)^([bcdfghjklmnÒpqrstvwxyz]*)([aeiou])([ns])es$', '\\1\\2\\3'],
+            ['(?i)([aeiou])([ns])es$',  '~1\\2'],
+            ['(?i)oides$',  'oide'], # androides->androide
+            ['(?i)(ces)$/i', 'z'],
+            ['(?i)(sis|tis|xis)+$',  '\\1'], # crisis, apendicitis, praxis
+            ['(?i)(È)s$',  '\\1'], # bebÈs->bebÈ
+            ['(?i)([^e])s$',  '\\1'], # casas->casa
+            ['(?i)([bcdfghjklmnÒprstvwxyz]{2,}e)s$', '\\1'], # cofres->cofre
+            ['(?i)([ghÒpv]e)s$', '\\1'], # 24-01 llaves->llave
+            ['(?i)es$', ''] # ELSE remove _es_  monitores->monitor
+        ];
+    
+        uncountable_words = ['paraguas','tijeras', 'gafas', 'vacaciones', 'vÌveres','lunes','martes','miÈrcoles','jueves','viernes','cumpleaÒos','virus','atlas','sms']
+        
+        irregular_words = {
+            'jersey':'jersÈis',
+            'espÈcimen':'especÌmenes',
+            'car·cter':'caracteres',
+            'rÈgimen':'regÌmenes',
+            'men˙':'men˙s',
+            'rÈgimen':'regÌmenes',
+            'curriculum' : 'currÌculos',
+            'ultim·tum' : 'ultimatos',
+            'memor·ndum' : 'memorandos',
+            'referÈndum' : 'referendos',
+            's·ndwich' : 's·ndwiches'
+        }
+    
+        lower_cased_word = word.lower();
+    
+        for uncountable_word in uncountable_words:
+            if lower_cased_word[-1*len(uncountable_word):] == uncountable_word :
+                return word
+            
+        for irregular in irregular_words.keys():
+            match = re.search('('+irregular+')$',word, re.IGNORECASE)
             if match:
-                result = re.sub(u'(?i)' + irregular_plural + u'$', match.expand(u'\\1')[0] + irregular_singular[1:], word)
-                return utils.deunicodify(result, origType)
-
-        for rule in rules:
-            match = re.search(rule[0], word, re.IGNORECASE)
-            if match:
+                return re.sub('(?i)'+irregular+'$', match.expand('\\1')[0]+irregular_words[irregular][1:], word)
+            
+        for rule in range(len(rules)):
+            match = re.search(rules[rule][0], word, re.IGNORECASE)
+            if match :
                 groups = match.groups()
-                replacement = rule[1]
-                if re.match(u'~', replacement):
-                    for k in range(1, len(groups)):
-                        replacement = replacement.replace(u'~' + unicode(
-                            k), self.string_replace(groups[k - 1], u'AEIOUaeiou', u'√Å√â√ç√ì√ö√°√©√≠√≥√∫'))
-
-                result = re.sub(rule[0], replacement, word)
-                # Esta es una posible soluci√≥n para el problema de dobles
-                # acentos. Un poco guarrillo pero funciona
-                match = re.search(u'(?i)([√°√©√≠√≥√∫]).*([√°√©√≠√≥√∫])', result)
-
-                if match and len(match.groups()) > 1 and not re.search(u'(?i)[√°√©√≠√≥√∫]', word):
-                    result = self.string_replace(
-                        result, u'√Å√â√ç√ì√ö√°√©√≠√≥√∫', u'AEIOUaeiou')
-
-                return utils.deunicodify(result, origType)
-
-        return utils.deunicodify(word, origType)
+                replacement = rules[rule][1]
+                if re.match('~', replacement) :
+                    for k in range(1, len(groups)) :
+                        replacement = replacement.replace('~'+str(k), self.string_replace(groups[k-1], 'AEIOUaeiou', '¡…Õ”⁄·ÈÌÛ˙'))
+                
+                result = re.sub(rules[rule][0], replacement, word)
+                # Esta es una posible soluciÛn para el problema de dobles acentos. Un poco guarrillo pero funciona
+                match = re.search('(?i)([·ÈÌÛ˙]).*([·ÈÌÛ˙])',result)
+                
+                if match and len(match.groups()) > 1 and not re.search('(?i)[·ÈÌÛ˙]', word) :
+                    result = self.string_replace(result, '¡…Õ”⁄·ÈÌÛ˙', 'AEIOUaeiou')
+                
+                return result
+        
+        return word
 
 
 # Copyright (c) 2006 Bermi Ferrer Martinez
@@ -183,4 +165,3 @@ class Spanish (Base):
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THIS SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THIS SOFTWARE.
-
